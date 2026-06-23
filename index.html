@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="成分分析">
+<title>シャンプー成分分析</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #f5f5f0; color: #1a1a1a; font-size: 15px; padding-bottom: 40px; }
+.header { background: #1a1a1a; padding: 18px 20px 16px; position: sticky; top: 0; z-index: 10; }
+.header h1 { font-size: 17px; font-weight: 600; color: #fff; }
+.header p { font-size: 12px; color: #aaa; margin-top: 2px; }
+.container { max-width: 640px; margin: 0 auto; padding: 16px; }
+.card { background: #fff; border-radius: 16px; padding: 18px; margin-bottom: 14px; border: 1px solid #e8e8e4; }
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; border-radius: 10px; border: 1px solid #ddd; background: #f5f5f0; color: #666; cursor: pointer; font-weight: 500; transition: all 0.15s; }
+.tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.panel { display: none; }
+.panel.active { display: block; }
+textarea { width: 100%; min-height: 110px; font-size: 14px; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; color: #1a1a1a; resize: vertical; font-family: inherit; line-height: 1.6; }
+textarea:focus { outline: none; border-color: #999; }
+.upload-area { border: 2px dashed #ddd; border-radius: 14px; padding: 30px 16px; text-align: center; cursor: pointer; background: #fafafa; transition: background 0.15s; }
+.upload-area:active { background: #f0f0ec; }
+.upload-area .icon { font-size: 36px; margin-bottom: 10px; }
+.upload-area p { font-size: 14px; color: #555; }
+.upload-area p.sub { font-size: 12px; color: #aaa; margin-top: 5px; }
+input[type=file] { display: none; }
+#preview-img { width: 100%; max-height: 220px; object-fit: contain; border-radius: 12px; margin-top: 14px; display: none; border: 1px solid #e8e8e4; }
+.hint { font-size: 12px; color: #aaa; margin-top: 7px; line-height: 1.5; }
+.btn { width: 100%; padding: 15px; background: #1a1a1a; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 14px; letter-spacing: 0.3px; transition: opacity 0.15s; }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn:active:not(:disabled) { opacity: 0.8; }
+.status { text-align: center; font-size: 13px; color: #666; margin: 12px 0 0; min-height: 20px; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ddd; border-top-color: #666; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 結果エリア */
+.result-section { display: none; }
+.result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.result-header h2 { font-size: 16px; font-weight: 600; }
+.count-badge { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+
+/* 全体印象カード */
+.impression-card { background: #1a1a1a; color: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+.impression-card h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; font-weight: 500; }
+.impression-card p { font-size: 14px; line-height: 1.7; }
+
+/* 成分カード */
+.item-card { background: #fff; border-radius: 14px; border: 1px solid #e8e8e4; padding: 14px; margin-bottom: 10px; }
+.item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.item-name { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.item-en { font-size: 11px; color: #999; margin-top: 3px; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.b-surfactant { background: #dbeafe; color: #1d4ed8; }
+.b-moisturize { background: #dcfce7; color: #166534; }
+.b-condition { background: #ede9fe; color: #6d28d9; }
+.b-preserve { background: #fef3c7; color: #92400e; }
+.b-fragrance { background: #fce7f3; color: #9d174d; }
+.b-uv { background: #fff7ed; color: #9a3412; }
+.b-antioxidant { background: #f0fdf4; color: #14532d; }
+.b-ph { background: #f1f5f9; color: #334155; }
+.b-other { background: #f3f4f6; color: #374151; }
+.safe-safe { background: #dcfce7; color: #166534; }
+.safe-caution { background: #fef3c7; color: #92400e; }
+.safe-danger { background: #fee2e2; color: #991b1b; }
+.safe-other { background: #f3f4f6; color: #374151; }
+.row { display: grid; grid-template-columns: 68px 1fr; gap: 3px 8px; font-size: 13px; margin-bottom: 7px; align-items: start; }
+.row:last-child { margin-bottom: 0; }
+.row-label { color: #bbb; font-size: 11px; padding-top: 2px; }
+.row-val { color: #1a1a1a; line-height: 1.55; }
+.formula { font-family: monospace; background: #f5f5f0; padding: 1px 7px; border-radius: 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🧴 シャンプー成分分析</h1>
+  <p>写真またはテキストで成分を入力してください</p>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('image')">📷 写真から読み取る</div>
+      <div class="tab" onclick="switchTab('text')">📝 テキスト入力</div>
+    </div>
+
+    <div id="tab-image" class="panel active">
+      <div class="upload-area" onclick="document.getElementById('file-input').click()">
+        <div class="icon">📷</div>
+        <p>タップして写真を選択</p>
+        <p class="sub">成分表示の写真を撮って選んでください</p>
+        <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
+      </div>
+      <img id="preview-img">
+      <button class="btn" id="btn-image" onclick="analyzeImage()" disabled>この写真を分析する</button>
+    </div>
+
+    <div id="tab-text" class="panel">
+      <textarea id="ingredients-text" placeholder="成分を貼り付けてください&#10;例: 水、ラウレス硫酸Na、コカミドプロピルベタイン、グリセリン、香料..."></textarea>
+      <p class="hint">ボトル裏の成分表示をコピーしてそのまま貼り付けてください</p>
+      <button class="btn" id="btn-text" onclick="analyzeText()">分析する</button>
+    </div>
+
+    <p class="status" id="status"></p>
+  </div>
+
+  <div class="result-section" id="result-section">
+    <div class="result-header">
+      <h2>分析結果</h2>
+      <span class="count-badge" id="count-badge"></span>
+    </div>
+    <div class="impression-card" id="impression-card" style="display:none;">
+      <h3>✦ 全体的な印象</h3>
+      <p id="impression-text"></p>
+    </div>
+    <div id="result-list"></div>
+  </div>
+</div>
+
+<script>
+let imageBase64 = null;
+let imageType = 'image/jpeg';
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', (i===0&&t==='image')||(i===1&&t==='text')));
+  document.getElementById('tab-image').classList.toggle('active', t==='image');
+  document.getElementById('tab-text').classList.toggle('active', t==='text');
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  imageType = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageBase64 = ev.target.result.split(',')[1];
+    const img = document.getElementById('preview-img');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+    document.getElementById('btn-image').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+function roleBadge(role) {
+  if (!role) return '<span class="badge b-other">その他</span>';
+  const map = {'界面活性剤':'surfactant','洗浄':'surfactant','保湿':'moisturize','保湿剤':'moisturize','コンディショニング':'condition','補修':'condition','防腐剤':'preserve','保存料':'preserve','香料':'fragrance','紫外線':'uv','酸化防止':'antioxidant','pH':'ph'};
+  const key = Object.keys(map).find(k => role.includes(k));
+  return `<span class="badge b-${key ? map[key] : 'other'}">${role}</span>`;
+}
+
+function safetyBadge(s) {
+  if (!s) return '-';
+  const cls = (s.includes('安全')||s.includes('低刺激')) ? 'safe' : (s.includes('要注意')||s.includes('アレルギー')) ? 'danger' : (s.includes('注意')) ? 'caution' : 'other';
+  return `<span class="badge safe-${cls}">${s}</span>`;
+}
+
+function renderResults(items, impression) {
+  document.getElementById('count-badge').textContent = `${items.length}種類`;
+  if (impression) {
+    document.getElementById('impression-text').textContent = impression;
+    document.getElementById('impression-card').style.display = 'block';
+  }
+  document.getElementById('result-list').innerHTML = items.map(item => `
+    <div class="item-card">
+      <div class="item-top">
+        <div>
+          <div class="item-name">${item.name||'-'}</div>
+          <div class="item-en">${item.en||''}</div>
+        </div>
+        ${roleBadge(item.role)}
+      </div>
+      <div class="row"><span class="row-label">化学式</span><span class="row-val">${item.formula ? `<span class="formula">${item.formula}</span>` : '-'}</span></div>
+      <div class="row"><span class="row-label">特徴</span><span class="row-val">${item.feature||'-'}</span></div>
+      <div class="row"><span class="row-label">安全性</span><span class="row-val">${safetyBadge(item.safety)}</span></div>
+    </div>`).join('');
+  document.getElementById('result-section').style.display = 'block';
+  setTimeout(() => document.getElementById('result-section').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+function setLoading(id, loading) {
+  const btn = document.getElementById(id);
+  const status = document.getElementById('status');
+  btn.disabled = loading;
+  status.innerHTML = loading ? '<span class="spinner"></span>分析中...少々お待ちください' : '';
+}
+
+async function callClaude(messages) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: `あなたはシャンプー・ヘアケア製品の成分専門家です。成分リストまたは画像を分析し、必ず以下のJSON形式のみを返してください。前置き・説明・マークダウン記法は一切不要です。
+
+{
+  "impression": "全体的な印象を2〜4文で。処方の特徴・品質・敏感肌への適性などを具体的に",
+  "ingredients": [
+    {"name":"成分名","en":"英語名","formula":"化学式（不明は-）","role":"主な役割（界面活性剤/保湿剤/コンディショニング/防腐剤/香料/紫外線吸収剤/酸化防止剤/pH調整/その他）","feature":"特徴を1〜2文","safety":"安全性（安全・低刺激・注意・要注意・アレルギー注意など）"}
+  ]
+}`,
+      messages
+    })
+  });
+  const data = await res.json();
+  const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  return JSON.parse(text.replace(/```json|```/g,'').trim());
+}
+
+async function analyzeText() {
+  const text = document.getElementById('ingredients-text').value.trim();
+  if (!text) { document.getElementById('status').textContent = '成分を入力してください'; return; }
+  setLoading('btn-text', true);
+  document.getElementById('result-section').style.display = 'none';
+  try {
+    const result = await callClaude([{ role:'user', content:`以下の成分を分析してください:\n${text}` }]);
+    renderResults(result.ingredients, result.impression);
+    document.getElementById('status').textContent = '';
+  } catch(e) {
+    document.getElementById('status').textContent = '分析に失敗しました。もう一度お試しください。';
+  }
+  document.getElementById('btn-text').disabled = false;
+}
+
+async function analyzeImage() {
+  if (!imageBase64) return;
+  setLoading('btn-image', true);
+  document.getElementById('result-section').style.display = 'none';
+  try {
+    const result = await callClaude([{ role:'user', content:[
+      { type:'image', source:{ type:'base64', media_type: imageType, data: imageBase64 } },
+      { type:'text', text:'この画像のシャンプー（またはヘアケア製品）の成分表示を読み取って分析してください' }
+    ]}]);
+    renderResults(result.ingredients, result.impression);
+    document.getElementById('status').textContent = '';
+  } catch(e) {
+    document.getElementById('status').textContent = '分析に失敗しました。画像が鮮明か確認してください。';
+  }
+  document.getElementById('btn-image').disabled = false;
+}
+</script>
+</body>
+</html>
